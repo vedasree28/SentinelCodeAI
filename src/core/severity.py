@@ -1,11 +1,6 @@
 def get_severity(issue_type: str) -> str:
-    high = ["AWS Key", "Mongo URI"]
-    medium = ["Generic Token", "High Entropy String"]
-    low = ["Leak"]
-
-    if issue_type in high:
+    if any(k in issue_type for k in ["Key", "Token", "Private", "URI"]):
         return "HIGH"
-    elif issue_type in medium:
+    elif any(k in issue_type for k in ["Suspicious", "Entropy"]):
         return "MEDIUM"
-    else:
-        return "LOW"
+    return "LOW"

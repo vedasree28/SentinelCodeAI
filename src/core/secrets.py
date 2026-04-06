@@ -1,43 +1,128 @@
 import re
 import math
-from typing import List, Dict
+from typing import List, Dict, Set
 
-# 🔹 Regex patterns
+# 🔐 Strong + Expanded Patterns
 SECRET_PATTERNS = [
-    ("AWS Key", r'AKIA[0-9A-Z]{16}'),
-    ("Generic Token", r'\b[A-Za-z0-9]{32,}\b'),
-    ("Mongo URI", r'mongodb://[A-Za-z0-9]+:[A-Za-z0-9]+@')
+    # Cloud
+    ("AWS Access Key", r'AKIA[0-9A-Z]{16}'),
+    ("AWS Secret Key", r'(?i)aws(.{0,20})?(secret|access)?(.{0,20})?[0-9a-zA-Z/+]{40}'),
+    ("Google API Key", r'AIza[0-9A-Za-z\-_]{35}'),
+
+    # DevOps
+    ("GitHub Token", r'ghp_[A-Za-z0-9]{36}'),
+    ("GitHub OAuth Token", r'gho_[A-Za-z0-9]{36}'),
+    ("GitLab Token", r'glpat-[A-Za-z0-9\-_]{20}'),
+
+    # Payments
+    ("Stripe Secret Key", r'sk_live_[0-9a-zA-Z]{24}'),
+    ("Stripe Public Key", r'pk_live_[0-9a-zA-Z]{24}'),
+
+    # Auth
+    ("JWT Token", r'eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+'),
+
+    # Database
+    ("MongoDB URI", r'mongodb(\+srv)?:\/\/[^\s]+'),
+    ("PostgreSQL URI", r'postgres:\/\/[^\s]+'),
+
+    # Private Keys
+    ("Private Key", r'-----BEGIN (RSA|DSA|EC|OPENSSH) PRIVATE KEY-----'),
+
+    # Messaging
+    ("Slack Token", r'xox[baprs]-[A-Za-z0-9-]{10,}'),
+
+    # Generic (Improved)
+    ("Generic API Key", r'(?i)(api[_-]?key|token|secret)[\'"\s:=]+[A-Za-z0-9\-_]{16,}')
 ]
 
-# 🔹 Entropy calculation
+# 🔍 Suspicious variable names
+SUSPICIOUS_NAMES = [
+    "api_key", "apikey", "secret", "token",
+    "password", "passwd", "pwd",
+    "auth", "credential", "access_key"
+]
+
+# 🚫 False positive filter
+def is_false_positive(value: str) -> bool:
+    safe_words = ["example", "test", "dummy", "sample", "localhost"]
+    return any(word in value.lower() for word in safe_words)
+
+# 🔢 Entropy calculation
 def shannon_entropy(data: str) -> float:
     if not data:
         return 0
     prob = [float(data.count(c)) / len(data) for c in set(data)]
     return -sum([p * math.log2(p) for p in prob])
 
-# 🔹 Detect secrets
+# 🔐 Main detection
 def detect_secrets(code: str) -> List[Dict]:
     findings = []
+    seen: Set[str] = set()  # ✅ Deduplication
 
-    # Regex detection
+    # 1️⃣ Regex-based detection
     for name, pattern in SECRET_PATTERNS:
         matches = re.findall(pattern, code)
         for match in matches:
+            value = match if isinstance(match, str) else match[0]
+
+            if is_false_positive(value):
+                continue
+
+            key = f"{name}:{value}"
+            if key in seen:
+                continue
+            seen.add(key)
+
             findings.append({
                 "type": name,
-                "value": match,
+                "value": value,
+                "confidence": "HIGH",
                 "method": "regex"
             })
 
-    # Entropy detection
+    # 2️⃣ Context-based detection
+    lines = code.split("\n")
+    for i, line in enumerate(lines):
+        lower_line = line.lower()
+
+        for keyword in SUSPICIOUS_NAMES:
+            if keyword in lower_line and "=" in line:
+                value = line.strip()
+
+                if is_false_positive(value):
+                    continue
+
+                key = f"context:{value}"
+                if key in seen:
+                    continue
+                seen.add(key)
+
+                findings.append({
+                    "type": "Suspicious Variable",
+                    "value": value,
+                    "confidence": "MEDIUM",
+                    "line": i + 1,
+                    "method": "context"
+                })
+
+    # 3️⃣ Entropy-based detection
     tokens = re.findall(r'[A-Za-z0-9+/=]{20,}', code)
     for token in tokens:
+        if is_false_positive(token):
+            continue
+
         entropy = shannon_entropy(token)
-        if entropy > 4.5:  # threshold
+
+        if entropy > 4.8:  # 🔥 tuned threshold
+            key = f"entropy:{token}"
+            if key in seen:
+                continue
+            seen.add(key)
+
             findings.append({
                 "type": "High Entropy String",
                 "value": token,
+                "confidence": "MEDIUM",
                 "method": "entropy"
             })
 

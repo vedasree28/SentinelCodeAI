@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: sentinelcode
+        name: SentinelCode AI Scan
+        entry: python src/git_hooks/pre_commit.py
+        language: system
+        types: [python]
+        pass_filenames: false
