@@ -4,10 +4,18 @@ from typing import List, Dict, Set
 
 # 🔐 Strong + Expanded Patterns
 SECRET_PATTERNS = [
-    # Cloud
+    # Cloud - AWS
     ("AWS Access Key", r'AKIA[0-9A-Z]{16}'),
     ("AWS Secret Key", r'(?i)aws(.{0,20})?(secret|access)?(.{0,20})?[0-9a-zA-Z/+]{40}'),
+
+    # Cloud - GCP
     ("Google API Key", r'AIza[0-9A-Za-z\-_]{35}'),
+    ("GCP Service Account", r'"type":\s*"service_account"'),
+
+    # Cloud - Azure
+    ("Azure Storage Key", r'(?i)DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}'),
+    ("Azure Client Secret", r'(?i)(client_secret|AZURE_CLIENT_SECRET)[\s:=\'"]+[A-Za-z0-9\-_~.]{34,}'),
+    ("Azure SAS Token", r'sv=\d{4}-\d{2}-\d{2}&s[a-z]='),
 
     # DevOps
     ("GitHub Token", r'ghp_[A-Za-z0-9]{36}'),
@@ -17,6 +25,9 @@ SECRET_PATTERNS = [
     # Payments
     ("Stripe Secret Key", r'sk_live_[0-9a-zA-Z]{24}'),
     ("Stripe Public Key", r'pk_live_[0-9a-zA-Z]{24}'),
+    ("Twilio Account SID", r'AC[a-zA-Z0-9]{32}'),
+    ("Twilio Auth Token", r'(?i)twilio(.{0,20})?[a-f0-9]{32}'),
+    ("SendGrid API Key", r'SG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}'),
 
     # Auth
     ("JWT Token", r'eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+'),
@@ -24,6 +35,10 @@ SECRET_PATTERNS = [
     # Database
     ("MongoDB URI", r'mongodb(\+srv)?:\/\/[^\s]+'),
     ("PostgreSQL URI", r'postgres:\/\/[^\s]+'),
+    ("MySQL URI", r'mysql:\/\/[^:]+:[^@]+@[^\s]+'),
+
+    # .env style assignments
+    ("Dotenv Secret", r'(?mi)^(API_KEY|SECRET|TOKEN|PASSWORD|PRIVATE_KEY|ACCESS_KEY|CLIENT_SECRET)=[^\s]+'),
 
     # Private Keys
     ("Private Key", r'-----BEGIN (RSA|DSA|EC|OPENSSH) PRIVATE KEY-----'),
@@ -39,7 +54,9 @@ SECRET_PATTERNS = [
 SUSPICIOUS_NAMES = [
     "api_key", "apikey", "secret", "token",
     "password", "passwd", "pwd",
-    "auth", "credential", "access_key"
+    "auth", "credential", "access_key",
+    "encryption_key", "client_secret", "bearer", "session_token",
+    "private_key", "passphrase"
 ]
 
 # 🚫 False positive filter

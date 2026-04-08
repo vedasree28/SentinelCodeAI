@@ -6,4 +6,3 @@ repos:
         entry: python src/git_hooks/pre_commit.py
         language: system
         types: [python]
-        pass_filenames: false
