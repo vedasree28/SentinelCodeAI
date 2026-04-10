@@ -21,6 +21,13 @@ It integrates with Git pre-commit hooks to **block unsafe commits and improve co
 *  Supports both file and folder scanning
 
 ---
+##  Installation
+
+### Install from PyPI (Recommended)
+This enables the global `sentinel` command:
+```bash
+pip install sentineldetectai
+```
 
 ##  Setup
 
